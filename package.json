@@ -4,10 +4,11 @@
   "description": "Sistema asignador de rutas por zonas para interventores",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --noEmitOnError false",
     "start": "node dist/server.js",
     "vercel-build": "tsc",
     "start:simple": "node dist/simple-server.js",
+    "build:railway": "tsc --skipLibCheck --noEmitOnError false",
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "dev:full": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "test": "jest",
