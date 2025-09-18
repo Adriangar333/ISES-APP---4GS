@@ -143,7 +143,7 @@ test.describe('Admin Workflow', () => {
     await page.click('[data-testid="include-assignments-checkbox"]');
     
     // Start export
-    const downloadPromise = page.waitForDownload();
+    const downloadPromise = page.waitForEvent('download');
     await page.click('[data-testid="export-button"]');
     
     const download = await downloadPromise;

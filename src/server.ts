@@ -8,31 +8,31 @@ import { initializeWebSocketService } from './services/WebSocketService';
 const startServer = async (): Promise<void> => {
   try {
     console.log('🚀 Starting Route Assignment System...');
-    
+
     // Connect to databases
     try {
       await DatabaseConnection.testConnection();
       console.log('✅ Database connection successful');
     } catch (error) {
-      console.warn('⚠️ Database connection failed, continuing without database:', error.message);
+      console.warn('⚠️ Database connection failed, continuing without database:', error instanceof Error ? error.message : String(error));
     }
-    
+
     try {
       await RedisConnection.testConnection();
       console.log('✅ Redis connection successful');
     } catch (error) {
-      console.warn('⚠️ Redis connection failed, continuing without Redis:', error.message);
+      console.warn('⚠️ Redis connection failed, continuing without Redis:', error instanceof Error ? error.message : String(error));
     }
-    
+
     // Create Express app
     const app = createApp();
-    
+
     // Create HTTP server
     const httpServer = createServer(app);
-    
+
     // Initialize WebSocket service
     initializeWebSocketService(httpServer);
-    
+
     // Start server
     const server = httpServer.listen(config.PORT, () => {
       console.log(`✅ Server running on port ${config.PORT}`);
@@ -44,10 +44,10 @@ const startServer = async (): Promise<void> => {
     // Graceful shutdown
     const gracefulShutdown = async (signal: string): Promise<void> => {
       console.log(`\n📡 Received ${signal}. Starting graceful shutdown...`);
-      
+
       server.close(async () => {
         console.log('🔒 HTTP server closed');
-        
+
         try {
           await DatabaseConnection.closeConnection();
           await RedisConnection.closeConnection();
@@ -63,7 +63,7 @@ const startServer = async (): Promise<void> => {
     // Handle shutdown signals
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-    
+
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);

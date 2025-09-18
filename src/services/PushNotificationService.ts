@@ -62,7 +62,7 @@ export class PushNotificationService {
 
       this.fcmApp = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        projectId: this.config.fcm.projectId || serviceAccount.project_id
+        projectId: this.config.fcm.projectId || serviceAccount.projectId
       }, 'push-notifications');
 
       console.log('FCM initialized successfully');
@@ -125,7 +125,7 @@ export class PushNotificationService {
     platforms?: DevicePlatform[]
   ): Promise<NotificationDeliveryReport> {
     const deviceTokens = await this.deviceTokenRepository.getDeviceTokensByUser(userId);
-    
+
     let filteredTokens = deviceTokens;
     if (platforms && platforms.length > 0) {
       filteredTokens = deviceTokens.filter(token => platforms.includes(token.platform));
@@ -152,7 +152,7 @@ export class PushNotificationService {
     if (tokensByPlatform.android.length > 0) {
       const fcmResults = await this.sendFCMNotifications(tokensByPlatform.android, payload);
       results.push(...fcmResults);
-      
+
       // Collect invalid tokens
       fcmResults.forEach(result => {
         if (result.shouldRemoveToken) {
@@ -165,7 +165,7 @@ export class PushNotificationService {
     if (tokensByPlatform.ios.length > 0) {
       const apnsResults = await this.sendAPNSNotifications(tokensByPlatform.ios, payload);
       results.push(...apnsResults);
-      
+
       // Collect invalid tokens
       apnsResults.forEach(result => {
         if (result.shouldRemoveToken) {
@@ -178,7 +178,7 @@ export class PushNotificationService {
     if (tokensByPlatform.web.length > 0) {
       const webResults = await this.sendWebPushNotifications(tokensByPlatform.web, payload);
       results.push(...webResults);
-      
+
       // Collect invalid tokens
       webResults.forEach(result => {
         if (result.shouldRemoveToken) {
@@ -216,10 +216,10 @@ export class PushNotificationService {
     const batchSize = 100;
     for (let i = 0; i < userIds.length; i += batchSize) {
       const batch = userIds.slice(i, i + batchSize);
-      const batchPromises = batch.map(userId => 
+      const batchPromises = batch.map(userId =>
         this.sendPushNotification(userId, payload, platforms)
       );
-      
+
       const batchResults = await Promise.all(batchPromises);
       reports.push(...batchResults);
     }
@@ -248,9 +248,10 @@ export class PushNotificationService {
     const batchSize = 500;
     for (let i = 0; i < tokens.length; i += batchSize) {
       const batch = tokens.slice(i, i + batchSize);
-      
-      const message: admin.messaging.MulticastMessage = {
-        tokens: batch,
+
+      // Create individual messages for each token
+      const messages: admin.messaging.Message[] = batch.map(token => ({
+        token,
         notification: {
           title: payload.title,
           body: payload.body,
@@ -272,42 +273,31 @@ export class PushNotificationService {
             link: payload.clickAction
           }
         } : undefined
-      };
+      }));
 
-      try {
-        const response = await messaging.sendMulticast(message);
-        
-        // Process individual results
-        response.responses.forEach((result, index) => {
-          const token = batch[index];
-          if (result.success) {
-            results.push({
-              platform: 'android',
-              token,
-              success: true,
-              messageId: result.messageId
-            });
-          } else {
-            const shouldRemoveToken = this.shouldRemoveFCMToken(result.error);
-            results.push({
-              platform: 'android',
-              token,
-              success: false,
-              error: result.error?.message || 'Unknown FCM error',
-              shouldRemoveToken
-            });
-          }
-        });
-      } catch (error) {
-        // If the entire batch fails, mark all tokens as failed
-        batch.forEach(token => {
+      // Send messages individually for maximum compatibility
+      for (let j = 0; j < messages.length; j++) {
+        const message = messages[j];
+        const token = batch[j];
+
+        try {
+          const messageId = await messaging.send(message);
+          results.push({
+            platform: 'android',
+            token,
+            success: true,
+            messageId
+          });
+        } catch (error: any) {
+          const shouldRemoveToken = this.shouldRemoveFCMToken(error);
           results.push({
             platform: 'android',
             token,
             success: false,
-            error: error instanceof Error ? error.message : 'FCM batch send failed'
+            error: error?.message || 'Unknown FCM error',
+            shouldRemoveToken
           });
-        });
+        }
       }
     }
 
@@ -345,14 +335,14 @@ export class PushNotificationService {
 
     try {
       const response = await this.apnsProvider.send(notification, tokens);
-      
+
       // Process successful sends
       response.sent.forEach(result => {
         results.push({
           platform: 'ios',
           token: result.device,
           success: true,
-          messageId: result.response?.headers?.['apns-id'] as string
+          messageId: `apns-${result.device}-${Date.now()}`
         });
       });
 
@@ -363,7 +353,7 @@ export class PushNotificationService {
           platform: 'ios',
           token: result.device,
           success: false,
-          error: result.error?.message || 'Unknown APNS error',
+          error: result.error ? String(result.error) : 'Unknown APNS error',
           shouldRemoveToken
         });
       });
@@ -402,9 +392,10 @@ export class PushNotificationService {
     const batchSize = 500;
     for (let i = 0; i < tokens.length; i += batchSize) {
       const batch = tokens.slice(i, i + batchSize);
-      
-      const message: admin.messaging.MulticastMessage = {
-        tokens: batch,
+
+      // Create individual messages for each token
+      const messages: admin.messaging.Message[] = batch.map(token => ({
+        token,
         notification: {
           title: payload.title,
           body: payload.body,
@@ -425,40 +416,31 @@ export class PushNotificationService {
             link: payload.clickAction
           } : undefined
         }
-      };
+      }));
 
-      try {
-        const response = await messaging.sendMulticast(message);
-        
-        response.responses.forEach((result, index) => {
-          const token = batch[index];
-          if (result.success) {
-            results.push({
-              platform: 'web',
-              token,
-              success: true,
-              messageId: result.messageId
-            });
-          } else {
-            const shouldRemoveToken = this.shouldRemoveFCMToken(result.error);
-            results.push({
-              platform: 'web',
-              token,
-              success: false,
-              error: result.error?.message || 'Unknown web push error',
-              shouldRemoveToken
-            });
-          }
-        });
-      } catch (error) {
-        batch.forEach(token => {
+      // Send messages individually for maximum compatibility
+      for (let j = 0; j < messages.length; j++) {
+        const message = messages[j];
+        const token = batch[j];
+
+        try {
+          const messageId = await messaging.send(message);
+          results.push({
+            platform: 'web',
+            token,
+            success: true,
+            messageId
+          });
+        } catch (error: any) {
+          const shouldRemoveToken = this.shouldRemoveFCMToken(error);
           results.push({
             platform: 'web',
             token,
             success: false,
-            error: error instanceof Error ? error.message : 'Web push batch send failed'
+            error: error?.message || 'Unknown web push error',
+            shouldRemoveToken
           });
-        });
+        }
       }
     }
 
@@ -490,19 +472,19 @@ export class PushNotificationService {
 
   private shouldRemoveFCMToken(error?: any): boolean {
     if (!error) return false;
-    
+
     const invalidTokenErrors = [
       'messaging/invalid-registration-token',
       'messaging/registration-token-not-registered',
       'messaging/invalid-argument'
     ];
-    
+
     return invalidTokenErrors.includes(error.code);
   }
 
   private shouldRemoveAPNSToken(error?: any): boolean {
     if (!error) return false;
-    
+
     // APNS error codes that indicate invalid tokens
     const invalidTokenStatuses = [400, 410]; // Bad request, Gone
     return invalidTokenStatuses.includes(error.status);

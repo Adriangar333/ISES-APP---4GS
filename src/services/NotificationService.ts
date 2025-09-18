@@ -15,6 +15,7 @@ import {
   WebSocketNotificationData,
   NotificationStats
 } from '../types';
+import type { PushNotificationConfig } from './PushNotificationService';
 
 export interface NotificationServiceConfig {
   email?: {
@@ -27,12 +28,7 @@ export interface NotificationServiceConfig {
     };
     from: string;
   };
-  push?: {
-    fcmServerKey?: string;
-    apnsKeyId?: string;
-    apnsTeamId?: string;
-    apnsKeyPath?: string;
-  };
+  push?: PushNotificationConfig;
   websocket?: {
     enabled: boolean;
   };
