@@ -1,0 +1,145 @@
+.import-history {
+  margin-top: 30px;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.history-header h3 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.history-table {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.history-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th {
+  background-color: #f8f9fa;
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.history-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.history-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.filename {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.date {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.number {
+  text-align: right;
+  font-family: monospace;
+}
+
+.number.success {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.number.error {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-processing {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-unknown {
+  background-color: #e2e3e5;
+  color: #383d41;
+}
+
+.success-rate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rate-bar {
+  flex: 1;
+  height: 8px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rate-fill {
+  height: 100%;
+  background-color: #28a745;
+  transition: width 0.3s ease;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .history-table {
+    overflow-x: auto;
+  }
+  
+  .history-table table {
+    min-width: 700px;
+  }
+  
+  .history-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+}

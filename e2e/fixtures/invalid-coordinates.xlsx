@@ -1,0 +1,4 @@
+# This is a mock Excel file with validation errors for testing purposes
+MOCK_EXCEL_FILE_FOR_TESTING=true
+COORDINATES_COUNT=50
+VALIDATION_ERRORS=3

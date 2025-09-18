@@ -1,0 +1,6 @@
+# This is a mock Excel file for testing purposes
+# In a real scenario, this would be a binary Excel file with coordinate data
+# For E2E tests, we'll mock the file upload and processing
+MOCK_EXCEL_FILE_FOR_TESTING=true
+COORDINATES_COUNT=100
+VALIDATION_ERRORS=0

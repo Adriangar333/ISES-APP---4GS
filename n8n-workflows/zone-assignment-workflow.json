@@ -1,0 +1,249 @@
+{
+    "name": "Zone Assignment Workflow",
+    "nodes": [
+        {
+            "parameters": {},
+            "name": "Start",
+            "type": "n8n-nodes-base.start",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "process-coordinates",
+                "responseMode": "responseNode"
+            },
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                400,
+                300
+            ],
+            "webhookId": "process-coordinates"
+        },
+        {
+            "parameters": {
+                "functionCode": "// Extraer coordenadas del webhook\nconst coordinates = $input.all()[0].json.coordinates;\n\n// Preparar datos para procesamiento\nreturn coordinates.map((coord, index) => ({\n  json: {\n    id: coord.id || `coord-${index}`,\n    latitude: coord.latitude,\n    longitude: coord.longitude,\n    address: coord.address || ''\n  }\n}));"
+            },
+            "name": "Process Input",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                580,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "requestMethod": "GET",
+                "url": "=http://host.docker.internal:3000/api/v1/zones/point/{{$json.latitude}}/{{$json.longitude}}",
+                "options": {
+                    "response": {
+                        "response.format": "json"
+                    }
+                }
+            },
+            "name": "Find Zone",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                760,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.data}}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "name": "Zone Found?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                940,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Coordenada con zona asignada\nreturn {\n  json: {\n    coordinateId: $json.id,\n    latitude: $json.latitude,\n    longitude: $json.longitude,\n    address: $json.address,\n    zoneId: $json.data.id,\n    zoneName: $json.data.name,\n    zoneType: $json.data.type,\n    status: 'assigned'\n  }\n};"
+            },
+            "name": "Assigned Coordinate",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                1120,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Coordenada sin zona\nreturn {\n  json: {\n    coordinateId: $json.id,\n    latitude: $json.latitude,\n    longitude: $json.longitude,\n    address: $json.address,\n    zoneId: null,\n    zoneName: null,\n    zoneType: null,\n    status: 'unassigned'\n  }\n};"
+            },
+            "name": "Unassigned Coordinate",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                1120,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "combine",
+                "combineBy": "combineAll"
+            },
+            "name": "Merge Results",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 2,
+            "position": [
+                1300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Generar reporte final\nconst allResults = $input.all().map(item => item.json);\nconst assigned = allResults.filter(r => r.status === 'assigned');\nconst unassigned = allResults.filter(r => r.status === 'unassigned');\n\n// Agrupar por zona\nconst zoneGroups = {};\nassigned.forEach(coord => {\n  if (!zoneGroups[coord.zoneId]) {\n    zoneGroups[coord.zoneId] = {\n      zoneId: coord.zoneId,\n      zoneName: coord.zoneName,\n      zoneType: coord.zoneType,\n      coordinates: []\n    };\n  }\n  zoneGroups[coord.zoneId].coordinates.push(coord);\n});\n\nreturn {\n  json: {\n    summary: {\n      totalCoordinates: allResults.length,\n      assignedCoordinates: assigned.length,\n      unassignedCoordinates: unassigned.length,\n      zonesUsed: Object.keys(zoneGroups).length\n    },\n    zoneAssignments: Object.values(zoneGroups),\n    unassignedCoordinates: unassigned,\n    processedAt: new Date().toISOString()\n  }\n};"
+            },
+            "name": "Generate Report",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                1480,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{$json}}"
+            },
+            "name": "Response",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1660,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Start": {
+            "main": [
+                [
+                    {
+                        "node": "Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Process Input",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process Input": {
+            "main": [
+                [
+                    {
+                        "node": "Find Zone",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Find Zone": {
+            "main": [
+                [
+                    {
+                        "node": "Zone Found?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Zone Found?": {
+            "main": [
+                [
+                    {
+                        "node": "Assigned Coordinate",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Unassigned Coordinate",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Assigned Coordinate": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Results",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Unassigned Coordinate": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Results",
+                        "type": "main",
+                        "index": 1
+                    }
+                ]
+            ]
+        },
+        "Merge Results": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Report",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Report": {
+            "main": [
+                [
+                    {
+                        "node": "Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

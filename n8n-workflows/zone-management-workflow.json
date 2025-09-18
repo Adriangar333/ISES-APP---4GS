@@ -1,0 +1,292 @@
+{
+  "name": "Zone Management Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "manage-zones",
+        "responseMode": "responseNode"
+      },
+      "name": "Zone Management Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "value2": "create"
+            }
+          ]
+        }
+      },
+      "name": "Action Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [580, 300],
+      "parameters": {
+        "options": {
+          "caseSensitive": true,
+          "ignoreCase": false
+        },
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{$json.action}}",
+                    "value2": "create"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "create"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{$json.action}}",
+                    "value2": "update"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "update"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{$json.action}}",
+                    "value2": "delete"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "delete"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{$json.action}}",
+                    "value2": "list"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "list"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://localhost:3000/api/v1/zones",
+        "options": {
+          "bodyContentType": "json",
+          "response": {
+            "response.format": "json"
+          }
+        },
+        "bodyParametersJson": "={{$json.zoneData}}"
+      },
+      "name": "Create Zone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [760, 100]
+    },
+    {
+      "parameters": {
+        "requestMethod": "PUT",
+        "url": "=http://localhost:3000/api/v1/zones/{{$json.zoneId}}",
+        "options": {
+          "bodyContentType": "json",
+          "response": {
+            "response.format": "json"
+          }
+        },
+        "bodyParametersJson": "={{$json.zoneData}}"
+      },
+      "name": "Update Zone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [760, 200]
+    },
+    {
+      "parameters": {
+        "requestMethod": "DELETE",
+        "url": "=http://localhost:3000/api/v1/zones/{{$json.zoneId}}",
+        "options": {
+          "response": {
+            "response.format": "json"
+          }
+        }
+      },
+      "name": "Delete Zone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "requestMethod": "GET",
+        "url": "http://localhost:3000/api/v1/zones",
+        "options": {
+          "response": {
+            "response.format": "json"
+          }
+        }
+      },
+      "name": "List Zones",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [760, 400]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll"
+      },
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [940, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}"
+      },
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Zone Management Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zone Management Webhook": {
+      "main": [
+        [
+          {
+            "node": "Action Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action Switch": {
+      "main": [
+        [
+          {
+            "node": "Create Zone",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Zone",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delete Zone",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "List Zones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Zone": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Zone": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Zone": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Zones": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
