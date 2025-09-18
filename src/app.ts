@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
+import path from 'path';
 import { config } from './config';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
@@ -87,8 +88,18 @@ export const createApp = (): Application => {
   // API routes
   app.use(config.API_PREFIX, routes);
 
-  // 404 handler
-  app.use(notFoundHandler);
+  // Serve static files from React build
+  const frontendBuildPath = path.join(__dirname, '../frontend/build');
+  app.use(express.static(frontendBuildPath));
+
+  // Serve React app for all non-API routes
+  app.get('*', (req, res) => {
+    // Don't serve React app for API routes
+    if (req.path.startsWith(config.API_PREFIX)) {
+      return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+  });
 
   // Global error handler
   app.use(errorHandler);
