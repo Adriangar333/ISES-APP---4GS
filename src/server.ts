@@ -1,7 +1,7 @@
 import { createApp } from './app';
-import { connectDatabase, disconnectDatabase } from '@/config/database';
-import { connectRedis, disconnectRedis } from '@/config/redis';
-import { config } from '@/config';
+import { DatabaseConnection } from './config/database';
+import { RedisConnection } from './config/redis';
+import { config } from './config';
 import { createServer } from 'http';
 import { initializeWebSocketService } from './services/WebSocketService';
 
@@ -10,8 +10,19 @@ const startServer = async (): Promise<void> => {
     console.log('🚀 Starting Route Assignment System...');
     
     // Connect to databases
-    await connectDatabase();
-    await connectRedis();
+    try {
+      await DatabaseConnection.testConnection();
+      console.log('✅ Database connection successful');
+    } catch (error) {
+      console.warn('⚠️ Database connection failed, continuing without database:', error.message);
+    }
+    
+    try {
+      await RedisConnection.testConnection();
+      console.log('✅ Redis connection successful');
+    } catch (error) {
+      console.warn('⚠️ Redis connection failed, continuing without Redis:', error.message);
+    }
     
     // Create Express app
     const app = createApp();
@@ -38,8 +49,8 @@ const startServer = async (): Promise<void> => {
         console.log('🔒 HTTP server closed');
         
         try {
-          await disconnectDatabase();
-          await disconnectRedis();
+          await DatabaseConnection.closeConnection();
+          await RedisConnection.closeConnection();
           console.log('✅ Graceful shutdown completed');
           process.exit(0);
         } catch (error) {

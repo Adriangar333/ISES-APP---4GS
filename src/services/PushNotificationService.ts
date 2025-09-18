@@ -488,7 +488,7 @@ export class PushNotificationService {
     return stringified;
   }
 
-  private shouldRemoveFCMToken(error?: admin.messaging.MessagingError): boolean {
+  private shouldRemoveFCMToken(error?: any): boolean {
     if (!error) return false;
     
     const invalidTokenErrors = [
