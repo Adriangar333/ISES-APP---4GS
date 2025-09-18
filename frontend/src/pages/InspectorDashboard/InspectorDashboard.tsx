@@ -212,6 +212,7 @@ const InspectorDashboard: React.FC<InspectorDashboardProps> = ({ inspectorId }) 
           </div>
         </div>
       </div>
+    </div>
     </OfflineProvider>
   );
 };
