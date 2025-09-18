@@ -5,7 +5,7 @@ nixPkgs = ['nodejs-18_x', 'npm-9_x']
 cmds = ['npm ci']
 
 [phases.build]
-cmds = ['npm run build:railway']
+cmds = ['npm run build:simple']
 
 [start]
 cmd = 'npm start'
