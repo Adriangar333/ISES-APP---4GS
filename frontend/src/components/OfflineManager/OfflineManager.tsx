@@ -208,4 +208,8 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ className })
   );
 };
 
-export default OfflineManager;
+// Export the main components
+export { OfflineProvider, OfflineIndicator, useOffline };
+
+// Default export for backwards compatibility
+export default OfflineIndicator;

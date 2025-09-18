@@ -59,7 +59,7 @@ const AssignmentDashboard: React.FC<AssignmentDashboardProps> = ({
     setFilters(prev => ({
       ...prev,
       [key]: prev[key]?.includes(inspectorId)
-        ? prev[key].filter(id => id !== inspectorId)
+        ? (prev[key] || []).filter(id => id !== inspectorId)
         : [...(prev[key] || []), inspectorId]
     }));
   };
